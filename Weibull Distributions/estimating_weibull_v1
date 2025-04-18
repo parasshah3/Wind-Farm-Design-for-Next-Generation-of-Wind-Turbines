@@ -1,0 +1,70 @@
+import numpy as np
+from scipy import special
+from scipy.optimize import brentq
+import matplotlib.pyplot as plt
+
+# Define the equation for finding the shape factor k
+def equation(k, sigma, U_mean):
+    try:
+        if k <= 0.1:  # Avoid very small k values
+            return np.inf
+        term1 = special.gamma(1 + 2 / k) / (special.gamma(1 + 1 / k) ** 2)
+        return (sigma**2 / U_mean**2) - term1 + 1
+    except Exception:
+        return np.inf
+
+# Weibull distribution PDF
+def weibull_distribution(U, k, c):
+    return (k / c) * (U / c) ** (k - 1) * np.exp(-(U / c) ** k)
+
+# Input values
+U_mean = 9.075548172  # Mean wind speed (m/s)
+sigma = 2.318815231  # Standard deviation (m/s)
+
+# Bounds for shape factor (k)
+k_min = 0.5
+k_max = 10
+
+# Brent's method to calculate shape factor (k)
+try:
+    k_brent = brentq(equation, k_min, k_max, args=(sigma, U_mean))
+    c_brent = U_mean / special.gamma(1 + 1 / k_brent)  # Scale factor
+    print(f"Brent's Method - Shape Factor (k): {k_brent}")
+    print(f"Brent's Method - Scale Factor (c): {c_brent}")
+except ValueError as e:
+    print(f"Error in Brent's method: {e}")
+    k_brent = None
+    c_brent = None
+
+# Empirical method for shape factor (k)
+k_empirical = (sigma / U_mean) ** -1.086
+c_empirical = U_mean / special.gamma(1 + 1 / k_empirical)
+print(f"Empirical Method - Shape Factor (k): {k_empirical}")
+print(f"Empirical Method - Scale Factor (c): {c_empirical}")
+
+# Generate Weibull distribution if Brent's method succeeded
+if k_brent and c_brent:
+    U_values = np.linspace(0, 18, 500)
+    weibull_pdf_brent = weibull_distribution(U_values, k_brent, c_brent)
+    
+    #Example: Probability of wind speed being 10 m/s
+    probability_of_10 = weibull_distribution(10, k_brent, c_brent)
+    print(f"Probability wind speed is 10 m/s: {probability_of_10:.5f}")
+
+    # Plotting
+    plt.figure(figsize=(10, 6))
+    plt.plot(U_values, weibull_pdf_brent, label=f"Brent's Method: k={k_brent:.3f}, c={c_brent:.3f}")
+    plt.xlabel('Wind Speed (m/s)')
+    plt.ylabel('Probability Density (1/m/s)')
+    plt.title('Weibull Distribution of Wind Speed at 100m above sea level')
+    plt.legend()
+    plt.grid()
+    plt.show()
+else:
+    print("Brent's method failed; skipping plot.")
+
+
+
+
+
+

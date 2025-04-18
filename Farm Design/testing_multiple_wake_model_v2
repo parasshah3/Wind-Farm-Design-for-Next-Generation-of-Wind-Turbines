@@ -1,0 +1,96 @@
+import farm_design_functions_v2 as fdv2
+import numpy as np
+
+# Constants based on input parameters
+v0 = 9.519  # Freestream wind speed (m/s)
+Ct = 0.761  # Thrust coefficient
+r0 = 126.0  # Rotor radius (m)
+z0 = 7.8662884488e-04  # Surface roughness length (m)
+D = 2 * r0  # Rotor diameter (m)
+
+# Test cases for different distances and conditions
+test_cases = [
+    {"x_ij_D": 5.0, "d_ij_D": 0.0, "description": "Complete Shadowing (Aligned)"},
+    {"x_ij_D": 5.0, "d_ij_D": 1.0, "description": "Partial Shadowing"},
+    {"x_ij_D": 5.0, "d_ij_D": 3.0, "description": "No Shadowing"},
+]
+
+def run_test_case(case):
+    """
+    Run an individual test case for the multiple_wake_model_ij function.
+
+    Parameters:
+    case (dict): A dictionary containing x_ij_D, d_ij_D, and a description.
+
+    Returns:
+    None
+    """
+    # Convert rotor-diameter-based distances to meters
+    x_ij = case["x_ij_D"] * D  # Downstream distance
+    d_ij = case["d_ij_D"] * D  # Perpendicular distance
+    description = case["description"]
+
+    print(f"\nRunning Test Case: {description}")
+    print(f"Downstream distance (x_ij): {case['x_ij_D']} D ({x_ij:.1f} m)")
+    print(f"Perpendicular distance (d_ij): {case['d_ij_D']} D ({d_ij:.1f} m)")
+
+    try:
+        # Compute effective wind speed and shadowing conditions
+        v_j_xij, partial_shadowing, complete_shadowing, no_shadowing = fdv2.multiple_wake_model_ij(
+            v0, r0, Ct, x_ij, z0, d_ij
+        )
+
+        # Print the computed results
+        print(f"Effective wind speed at turbine j: {v_j_xij:.3f} m/s")
+        if complete_shadowing:
+            print("Condition: Complete shadowing")
+        elif partial_shadowing:
+            print("Condition: Partial shadowing")
+        elif no_shadowing:
+            print("Condition: No shadowing")
+    except Exception as e:
+        print(f"Error in test case '{description}': {e}")
+
+def test_multiple_wake_model():
+    """
+    Test the multiple_wake_model_ij function with various test cases.
+    """
+    print("Starting tests for multiple_wake_model_ij...\n")
+    for case in test_cases:
+        run_test_case(case)
+    print("\nAll test cases completed.")
+
+# Run the tests
+if __name__ == "__main__":
+    test_multiple_wake_model()
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Constants
+v0 = 9.519  # Freestream wind speed (m/s)
+Ct = 0.761  # Thrust coefficient
+r0 = 126.0  # Rotor radius (m)
+z0 = 7.8662884488e-04  # Surface roughness length (m)
+D = 2 * r0  # Rotor diameter (m)
+x_ij = 5 * D  # Downstream distance (5 rotor diameters)
+
+# Rotor area
+A_0 = np.pi * r0**2  # Rotor swept area
+
+# Range for A_shadow_i (greater than 0, example values)
+A_shadow_i = np.linspace(0.1, A_0, 500)
+
+# Equation for v_j_xij
+r_i_xij = r0 + 0.001*x_ij  # Assuming rotor radius remains the same downstream
+v_j_xij = v0 * (1 - (1 - np.sqrt(1 - Ct)) * (r0 / r_i_xij)**2 * (A_shadow_i / A_0))
+
+# Plot
+plt.figure(figsize=(10, 6))
+plt.plot(A_shadow_i, v_j_xij, label=r"$v_{j,xij}$ vs $A_{shadow}$")
+plt.xlabel(r"$A_{shadow,i}$ (m$^2$)", fontsize=12)
+plt.ylabel(r"$v_{j,xij}$ (m/s)", fontsize=12)
+plt.title(r"Graph of $v_{j,xij}$ against $A_{shadow}$", fontsize=14)
+plt.grid(True)
+plt.legend()
+plt.show()
